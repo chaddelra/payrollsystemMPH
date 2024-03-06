@@ -33,7 +33,6 @@ public class payrollSystem {
         String EmployeeDetails = "/Users/chadleyayco/Documents/MO-IT101-Group11/payrollsystemMPH/src/MotorPH _Helena's Copy - Employee Details (rev).csv";
         String AttendanceRecord = "/Users/chadleyayco/Documents/MO-IT101-Group11/payrollsystemMPH/src/MotorPH _Helena's Copy - Copy of Attendance Record.csv";
         String HourlyRateFile = "/Users/chadleyayco/Documents/MO-IT101-Group11/payrollsystemMPH/src/Group 11 Official File - Hourly Rate.csv";
-        String SSS = "/Users/chadleyayco/Documents/Group 11 Files/SSS.csv";
 
         int employeeID = 0; // Declare employeeID outside the loop
         Scanner scanner = new Scanner(System.in);
@@ -252,36 +251,67 @@ public class payrollSystem {
             System.out.println("\n----------Gross Pay----------");
             System.out.println("Gross Pay for " + enteredMonth + ": PHP " + String.format("%.2f", grossPay));
 
-            // Read SSS information (moved outside the loop)
-            String sssNumber = "";
-            try (BufferedReader sssReader = new BufferedReader(new FileReader(SSS))) {
-                String line;
-                boolean isFirstLine = true;
-                while ((line = sssReader.readLine()) != null) {
-                    if (isFirstLine) {
-                        isFirstLine = false;
-                        continue;
-                    }
-                    String[] sssArray = line.split(",");
-                    int currentEmployeeID = Integer.parseInt(sssArray[0].trim());
-                    if (currentEmployeeID == employeeID) {
-                        sssNumber = sssArray[1].trim(); // Assuming SSS number is in the second column
-                        break;
-                    }
-                }
-            } catch (FileNotFoundException e) {
-                System.out.println("Error: SSS file not found.");
-                e.printStackTrace();
-            } catch (IOException e) {
-                System.out.println("Error reading SSS file.");
-                e.printStackTrace();
+            // Calculate SSS Contribution
+            double sssContribution; // Rename the variable for SSS contribution
+            if (grossPay == 0) {
+                sssContribution = 0.00;
+            } else if (grossPay < 3250) {
+                sssContribution = 135.00;
+            } else if (grossPay <= 24750) {
+                int bracket = (int) Math.ceil((grossPay - 3250) / 500);
+                sssContribution = 135.00 + bracket * 22.50;
+            } else {
+                sssContribution = 1125.00;
             }
 
-            // Display SSS information (moved inside the loop)
-            System.out.println("\n----------SSS Information----------");
-            System.out.println("SSS Number: " + (sssNumber.isEmpty() ? "Not available" : sssNumber));
-        }
+            // Calculate PhilHealth Contribution
+            double philHealthContribution = (grossPay * 0.03) / 2;
 
-        scanner.close();
+            // Calculate PagIBIG Contribution
+            double pagIBIGContribution;
+            if (grossPay >= 1500) {
+                pagIBIGContribution = grossPay * 0.02;
+            } else if (grossPay >= 1000) {
+                pagIBIGContribution = grossPay * 0.01;
+            } else {
+                pagIBIGContribution = 0;
+            }
+            // Calculate Taxable Income
+            double taxableIncome = grossPay - sssContribution - pagIBIGContribution - philHealthContribution;
+
+            // Calculate Withholding Tax
+            double withholdingTax;
+            if (taxableIncome <= 20832) {
+                withholdingTax = 0;
+            } else if (taxableIncome <= 33333) {
+                withholdingTax = 0.2 * (taxableIncome - 20833);
+            } else if (taxableIncome <= 66667) {
+                withholdingTax = 2500 + 0.25 * (taxableIncome - 33333);
+            } else if (taxableIncome <= 166667) {
+                withholdingTax = 10833 + 0.3 * (taxableIncome - 66667);
+            } else if (taxableIncome <= 666667) {
+                withholdingTax = 40833.33 + 0.32 * (taxableIncome - 166667);
+            } else {
+                withholdingTax = 200833.33 + 0.35 * (taxableIncome - 666667);
+            }
+
+            // Calculate late deductions
+            double lateDeductions = totalLateHoursForMonth * hourlyRate;
+
+            System.out.println("\n----------Contributions----------");
+            System.out.println("\nSSS Contribution           : PHP " + String.format("%.2f", sssContribution));
+            System.out.println("PhilHealth Contribution    : PHP " + String.format("%.2f", philHealthContribution));
+            System.out.println("PagIBIG Contribution       : PHP " + String.format("%.2f", pagIBIGContribution));
+            System.out.println("\nTaxable Income             : PHP " + String.format("%.2f", taxableIncome));
+            System.out.println("Withholding Tax            : PHP " + String.format("%.2f", withholdingTax));
+            System.out.println("Late Deductions            : PHP " + String.format("%.2f", lateDeductions));
+
+            double netPay = grossPay - sssContribution - pagIBIGContribution - philHealthContribution - withholdingTax - lateDeductions;
+
+            // Print net pay
+            System.out.println("\n--------------Net Pay--------------");
+            System.out.println("\nNet Pay                    : PHP " + String.format("%.2f", netPay));
+
+        }
     }
 }
